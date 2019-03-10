@@ -290,9 +290,9 @@ def adam(Xs, Ys, gamma, W0, alpha, rho1, rho2, B, eps, num_epochs, monitor_perio
             grad = multinomial_logreg_grad_i(Xs, Ys, numpy.array(sample), gamma, W_prev)
             s = rho1*s + (1 - rho1)*grad
             r = rho2*r + (1 - rho2)*numpy.power(grad,2)
-            s_hat = s/(1-rho1**t)
-            r_hat = r/(1-rho2**t)
-            W_next= W_prev - alpha/numpy.sqrt(r_hat)*s_hat
+            s_hat = s/(1-rho1**(t+1))
+            r_hat = r/(1-rho2**(t+1))
+            W_next= W_prev - alpha/numpy.sqrt(r_hat+eps)*s_hat
             if ((t + 1)% monitor_period == 0):
                 Ws_output.append(W_next)
             t=t+1
@@ -383,16 +383,17 @@ def problem_1_error_driver():
 def problem_1_time_driver():
     Xs_tr, Ys_tr, Xs_te, Ys_te = load_MNIST_dataset()
     
-    d, n = Xs_tr.shape
-    c, n = Ys_tr.shape
-
+    d, n = numpy.shape(Xs_tr)
+    c, n = numpy.shape(Ys_tr)
+    
     W0 = numpy.random.rand(c,d)
+    
     gamma = 0.0001
-    alpha = 0.0001
+    alpha = 1
     beta_1 = 0.9
     beta_2 = 0.99
-    num_epochs = 1
     monitor_period = 1
+    num_epochs = 100
     
     time_alg1 = 0
     time_alg2 = 0
@@ -506,18 +507,18 @@ def problem_2_error_driver():
 
 def problem_2_time_driver():
     Xs_tr, Ys_tr, Xs_te, Ys_te = load_MNIST_dataset()
-    
-    d, n = Xs_tr.shape
-    c, n = Ys_tr.shape
+        
+    d, n = numpy.shape(Xs_tr)
+    c, n = numpy.shape(Ys_tr)
     
     W0 = numpy.random.rand(c,d)
+    B = 600
     gamma = 0.0001
-    alpha = 0.02
+    alpha = 0.2
     beta_1 = 0.9
     beta_2 = 0.99
-    num_epochs = 1
-    monitor_period = 1
-    B=600
+    monitor_period = 10
+    num_epochs = 10
     
     time_alg1 = 0
     time_alg2 = 0
@@ -526,7 +527,7 @@ def problem_2_time_driver():
     
     for i in range(5):
         start = time.clock()
-        W_SGD = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+        sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
         time_alg1 = time_alg1 + time.clock() - start
         
         start = time.clock()
@@ -547,8 +548,119 @@ def problem_2_time_driver():
     print("the average time of SGD with momentum, beta= 0.9: ",time_alg2)
     print("the average time of SGD with momentum, beta= 0.99: ",time_alg3)
 
+def problem_3_error_driver():
+    Xs_tr, Ys_tr, Xs_te, Ys_te = load_MNIST_dataset()
+    
+    d, n = numpy.shape(Xs_tr)
+    c, n = numpy.shape(Ys_tr)
+    
+    W0 = numpy.random.rand(c,d)
+    B = 600
+    gamma = 0.0001
+    alpha_1 = 0.2
+    alpha_2 = 0.01
+    rho1 = 0.9
+    rho2 = 0.999
+    monitor_period = 10
+    num_epochs = 10
+    eps = .00001
+    W_SGD = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_1, B, num_epochs, monitor_period)
+    W_ADAM = adam(Xs_tr, Ys_tr, gamma, W0, alpha_2, rho1, rho2, B, eps, num_epochs, monitor_period)
+   
+    
+    W_SGD_tr_err = []
+    W_ADAM_tr_err = []
+   
+   
+   
+    index= numpy.linspace(1,10,len(W_SGD))
+    
+    for i in range(len(W_SGD)):
+        W_SGD_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_SGD[i]))
+        W_ADAM_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_ADAM[i]))
+
+
+    W_SGD_te_err = []
+    W_ADAM_te_err = []
+
+
+    for i in range(len(W_SGD)):
+        W_SGD_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_SGD[i]))
+        W_ADAM_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_ADAM[i]))
+
+        
+    W_SGD_loss = []
+    W_ADAM_loss = []
+
+    for i in range(len(W_SGD)):
+        W_SGD_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_SGD[i]))
+        W_ADAM_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_ADAM[i]))
+
+
+    plt.figure()
+    plt.plot(index,  W_SGD_tr_err, 'r-')
+    plt.plot(index,  W_ADAM_tr_err, 'b-')
+
+    plt.ylabel('Percent error')
+    plt.xlabel('Epoch number')
+    plt.title('SGD vs. ADAM, training error')
+    plt.savefig('train_err_ADAM.pdf')
+
+    plt.figure()
+    plt.plot(index,  W_SGD_te_err, 'r-')
+    plt.plot(index,  W_ADAM_te_err, 'b-')
+    plt.ylabel('Percent error')
+    plt.xlabel('Epoch number')
+    plt.title('SGD vs. ADAM, testing error')
+    plt.savefig('test_err_ADAM.pdf')
+
+    plt.figure()
+    plt.plot(index,  W_SGD_loss, 'r-')
+    plt.plot(index,  W_ADAM_loss, 'b-')
+    plt.ylabel('Percent error')
+    plt.xlabel('Epoch number')
+    plt.title('SGD vs. ADAM, training loss')
+    plt.savefig('loss_ADAM.pdf')
+
+def problem_3_time_driver():
+    Xs_tr, Ys_tr, Xs_te, Ys_te = load_MNIST_dataset()
+    
+    d, n = numpy.shape(Xs_tr)
+    c, n = numpy.shape(Ys_tr)
+    
+    W0 = numpy.random.rand(c,d)
+    B = 600
+    gamma = 0.0001
+    alpha_1 = 0.2
+    alpha_2 = 0.01
+    rho1 = 0.9
+    rho2 = 0.999
+    monitor_period = 10
+    num_epochs = 10
+    eps = .00001
+    
+    time_alg1 = 0
+    time_alg2 = 0
+
+    
+    
+    for i in range(5):
+        start = time.clock()
+        sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_1, B, num_epochs, monitor_period)
+        time_alg1 = time_alg1 + time.clock() - start
+        
+        start = time.clock()
+        adam(Xs_tr, Ys_tr, gamma, W0, alpha_2, rho1, rho2, B, eps, num_epochs, monitor_period)
+        time_alg2 = time_alg2+  time.clock() - start
+        
+    print("the average time of SGD: ",time_alg1)
+    print("the average time of ADAM: ",time_alg2)
+
 if __name__ == "__main__":
     #problem_1_error_driver()
     #problem_1_time_driver()
     #problem_2_error_driver()
-    problem_2_time_driver()
+    #problem_2_time_driver()
+    #problem_3_error_driver()
+    problem_3_time_driver()
+
