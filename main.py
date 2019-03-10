@@ -437,73 +437,118 @@ def problem_2_error_driver():
     monitor_period = 10
     num_epochs = 10
     
-    index = numpy.linspace(1,100,100)
-    W_GD = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
-    W_GDM_B1 = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha, beta_1, num_epochs, monitor_period)
-    W_GDM_B2 = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha, beta_2, num_epochs, monitor_period)
+    W_SGD = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+    W_SGDM_B1 = sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta_1, B, num_epochs, monitor_period)
+    W_SGDM_B2 = sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta_2, B, num_epochs, monitor_period)
     
-    W_GD_tr_err = []
-    W_GDM_B1_tr_err = []
-    W_GDM_B2_tr_err = []
+    W_SGD_tr_err = []
+    W_SGDM_B1_tr_err = []
+    W_SGDM_B2_tr_err = []
     
-    index= numpy.linspace(1,10,100)
     
-    if len(W_GD) != len(W_GDM_B1) or len(W_GD) != len(W_GDM_B2) or len(W_GDM_B1) != len(W_GDM_B2):
+    
+    if len(W_SGD) != len(W_SGDM_B1) or len(W_SGD) != len(W_SGDM_B2) or len(W_SGDM_B1) != len(W_SGDM_B2):
         print("length of arrays not equal")
     
-    for i in range(len(W_GD)):
-        W_GD_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_GD[i]))
-        W_GDM_B1_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_GDM_B1[i]))
-        W_GDM_B2_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_GDM_B2[i]))
-
-    W_GD_te_err = []
-    W_GDM_B1_te_err = []
-    W_GDM_B2_te_err = []
-
-for i in range(len(W_GD)):
-    W_GD_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_GD[i]))
-    W_GDM_B1_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_GDM_B1[i]))
-    W_GDM_B2_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_GDM_B2[i]))
+    index= numpy.linspace(1,10,len(W_SGD))
     
-    W_GD_loss = []
-    W_GDM_B1_loss = []
-    W_GDM_B2_loss = []
+    for i in range(len(W_SGD)):
+        W_SGD_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_SGD[i]))
+        W_SGDM_B1_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_SGDM_B1[i]))
+        W_SGDM_B2_tr_err.append(multinomial_logreg_error(Xs_tr, Ys_tr, W_SGDM_B2[i]))
+
+    W_SGD_te_err = []
+    W_SGDM_B1_te_err = []
+    W_SGDM_B2_te_err = []
+
+    for i in range(len(W_SGD)):
+        W_SGD_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_SGD[i]))
+        W_SGDM_B1_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_SGDM_B1[i]))
+        W_SGDM_B2_te_err.append(multinomial_logreg_error(Xs_te, Ys_te, W_SGDM_B2[i]))
+        
+    W_SGD_loss = []
+    W_SGDM_B1_loss = []
+    W_SGDM_B2_loss = []
     
-    for i in range(len(W_GD)):
-        W_GD_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_GD[i]))
-        W_GDM_B1_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_GDM_B1[i]))
-        W_GDM_B2_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_GDM_B2[i]))
+    for i in range(len(W_SGD)):
+        W_SGD_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_SGD[i]))
+        W_SGDM_B1_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_SGDM_B1[i]))
+        W_SGDM_B2_loss.append(multinomial_logreg_loss(Xs_tr, Ys_tr, gamma, W_SGDM_B2[i]))
 
 
     plt.figure()
-    plt.plot(index,  W_GD_tr_err, 'r-')
-    plt.plot(index,  W_GDM_B1_tr_err, 'b-')
-    plt.plot(index,  W_GDM_B2_tr_err, 'g-')
+    plt.plot(index,  W_SGD_tr_err, 'r-')
+    plt.plot(index,  W_SGDM_B1_tr_err, 'b-')
+    plt.plot(index,  W_SGDM_B2_tr_err, 'g-')
     plt.ylabel('Percent error')
     plt.xlabel('Epoch number')
-    plt.title('GD vs. GD with momentum, training error')
-    plt.savefig('train_err_GD.pdf')
+    plt.title('SGD vs. SGD with momentum, training error')
+    plt.savefig('train_err_SGD.pdf')
 
-plt.figure()
-plt.plot(index,  W_GD_te_err, 'r-')
-plt.plot(index,  W_GDM_B1_te_err, 'b-')
-plt.plot(index,  W_GDM_B2_te_err, 'g-')
-plt.ylabel('Percent error')
-plt.xlabel('Epoch number')
-plt.title('GD vs. GD with momentum, testing error')
-plt.savefig('test_err_GD.pdf')
+    plt.figure()
+    plt.plot(index,  W_SGD_te_err, 'r-')
+    plt.plot(index,  W_SGDM_B1_te_err, 'b-')
+    plt.plot(index,  W_SGDM_B2_te_err, 'g-')
+    plt.ylabel('Percent error')
+    plt.xlabel('Epoch number')
+    plt.title('SGD vs. SGD with momentum, testing error')
+    plt.savefig('test_err_SGD.pdf')
 
-plt.figure()
-plt.plot(index,  W_GD_loss, 'r-')
-plt.plot(index,  W_GDM_B1_loss, 'b-')
-plt.plot(index,  W_GDM_B2_loss, 'g-')
-plt.ylabel('Percent error')
-plt.xlabel('Epoch number')
-plt.title('GD vs. GD with momentum, training loss')
-plt.savefig('loss_GD.pdf')
+    plt.figure()
+    plt.plot(index,  W_SGD_loss, 'r-')
+    plt.plot(index,  W_SGDM_B1_loss, 'b-')
+    plt.plot(index,  W_SGDM_B2_loss, 'g-')
+    plt.ylabel('Percent error')
+    plt.xlabel('Epoch number')
+    plt.title('SGD vs. SGD with momentum, training loss')
+    plt.savefig('loss_SGD.pdf')
 
 
+def problem_2_time_driver():
+    Xs_tr, Ys_tr, Xs_te, Ys_te = load_MNIST_dataset()
+    
+    d, n = Xs_tr.shape
+    c, n = Ys_tr.shape
+    
+    W0 = numpy.random.rand(c,d)
+    gamma = 0.0001
+    alpha = 0.02
+    beta_1 = 0.9
+    beta_2 = 0.99
+    num_epochs = 1
+    monitor_period = 1
+    B=600
+    
+    time_alg1 = 0
+    time_alg2 = 0
+    time_alg3 = 0
+    
+    
+    for i in range(5):
+        start = time.clock()
+        W_SGD = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+        time_alg1 = time_alg1 + time.clock() - start
+        
+        start = time.clock()
+        sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta_1, B, num_epochs, monitor_period)
+        time_alg2 = time_alg2+  time.clock() - start
+        
+        start = time.clock()
+        sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta_2, B, num_epochs, monitor_period)
+        time_alg3 = time_alg3+  time.clock() - start
+    
+    
+    time_alg1 = time_alg1/5
+    time_alg2 = time_alg2/5
+    time_alg3 = time_alg3/5
+    
+    
+    print("the average time of SGD: ",time_alg1)
+    print("the average time of SGD with momentum, beta= 0.9: ",time_alg2)
+    print("the average time of SGD with momentum, beta= 0.99: ",time_alg3)
 
 if __name__ == "__main__":
     #problem_1_error_driver()
     #problem_1_time_driver()
+    #problem_2_error_driver()
+    problem_2_time_driver()
